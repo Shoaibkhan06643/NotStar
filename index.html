@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NotCoin Mining</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #1c1c1c; /* Dark background */
+            color: white; /* Light text color */
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: #2c2c2c; /* Darker container */
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+            padding: 20px;
+        }
+
+        header {
+            text-align: center;
+        }
+
+        .progress-container {
+            background: #444; /* Darker progress container */
+            border-radius: 20px;
+            overflow: hidden;
+            margin: 20px 0;
+        }
+
+        .progress-bar {
+            height: 20px;
+            background: #76c7c0; /* Light green progress */
+            width: 0%; /* Progress will be updated via JavaScript */
+            transition: width 0.3s;
+        }
+
+        .progress-label {
+            text-align: center;
+            margin-top: 5px;
+        }
+
+        .timer-label {
+            text-align: center;
+            margin-top: 10px;
+        }
+
+        .claim-button {
+            background: #76c7c0;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            display: block;
+            margin: 20px auto;
+            disabled: true;
+        }
+
+        .total-points {
+            margin: 10px 0;
+            text-align: center;
+        }
+
+        .leaderboard, .wallet {
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            background-color: #3c3c3c; /* Dark background for sections */
+        }
+
+        /* Hide sections by default */
+        .leaderboard, .wallet {
+            display: none;
+        }
+
+        .wallet-input {
+            display: flex;
+            flex-direction: column;
+            margin-top: 10px;
+        }
+
+        .wallet-input input {
+            padding: 10px;
+            border-radius: 5px;
+            border: none;
+            margin-bottom: 10px;
+        }
+
+        .navigation {
+            display: flex;
+            justify-content: space-around;
+            margin: 20px 0;
+        }
+
+        button {
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            background-color: #4CAF50; /* Green buttons */
+            color: white;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>NotCoin Mining</h1>
+        </header>
+
+        <div class="progress-container">
+            <div class="progress-bar" id="progress-bar"></div>
+            <div class="progress-label" id="progress-label">Progress: 0%</div>
+            <div class="timer-label" id="timer-label">Time Remaining: 5:00</div>
+        </div>
+
+        <div class="total-points">
+            <h2>Total Points: <span id="total-points">0</span></h2>
+        </div>
+
+        <button id="claim-button" class="claim-button" disabled>Claim Points</button>
+        
+        <div class="leaderboard" id="leaderboard">
+            <h2>Leaderboard</h2>
+            <ul>
+                <li>User1: 120 Points</li>
+                <li>User2: 95 Points</li>
+                <li>User3: 80 Points</li>
+            </ul>
+        </div>
+
+        <div class="wallet" id="wallet">
+            <h2>Wallet</h2>
+            <div class="wallet-input">
+                <label for="wallet-address">Enter Your Wallet Address:</label>
+                <input type="text" id="wallet-address" placeholder="0x123...456">
+                <button id="connect-wallet-button">Connect Wallet</button>
+            </div>
+            <p id="wallet-status"></p>
+        </div>
+    </div>
+
+    <nav class="navigation">
+        <button id="home-button">Home</button>
+        <button id="leaderboard-button">Leaderboard</button>
+        <button id="wallet-button">Wallet</button>
+    </nav>
+
+    <script>
+        let progress = 0;
+        let totalPoints = 0; // Variable to keep track of total points
+        const progressBar = document.getElementById("progress-bar");
+        const progressLabel = document.getElementById("progress-label");
+        const claimButton = document.getElementById("claim-button");
+        const totalPointsDisplay = document.getElementById("total-points");
+        const timerLabel = document.getElementById("timer-label");
+        const walletStatus = document.getElementById("wallet-status");
+
+        // Load progress from local storage if it exists
+        const savedProgress = localStorage.getItem("progress");
+        const savedPoints = localStorage.getItem("totalPoints");
+
+        if (savedProgress) {
+            progress = parseFloat(savedProgress);
+            totalPoints = parseInt(savedPoints) || 0;
+            progressBar.style.width = progress + "%";
+            progressLabel.textContent = "Progress: " + Math.round(progress) + "%";
+            totalPointsDisplay.textContent = totalPoints; // Update total points display
+            if (progress >= 100) {
+                claimButton.disabled = false;
+                claimButton.textContent = "Claim Points Now!";
+            }
+        }
+
+        // Start progress for mining
+        const miningDuration = 300000; // 5 minutes in milliseconds
+        const intervalTime = 30000; // Update every 30 seconds in milliseconds
+        const progressIncrement = 100 / (miningDuration / intervalTime);
+
+        // Timer variables
+        let timeRemaining = miningDuration / 1000; // Time remaining in seconds
+        const timerInterval = setInterval(() => {
+            if (timeRemaining > 0) {
+                timeRemaining--;
+                const minutes = Math.floor(timeRemaining / 60);
+                const seconds = timeRemaining % 60;
+                timerLabel.textContent = `Time Remaining: ${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+            } else {
+                clearInterval(timerInterval);
+                claimButton.disabled = false;
+                claimButton.textContent = "Claim Points Now!";
+            }
+        }, 1000);
+
+        // Mining progress interval
+        const miningInterval = setInterval(() => {
+            if (progress < 100) {
+                progress += progressIncrement;
+                totalPoints += 2; // Increment total points by 2 for each update
+                progressBar.style.width = progress + "%";
+                progressLabel.textContent = "Progress: " + Math.round(progress) + "%";
+                totalPointsDisplay.textContent = totalPoints; // Update total points display
+                
+                // Save progress to local storage
+                localStorage.setItem("progress", progress);
+                localStorage.setItem("totalPoints", totalPoints);
+            } else {
+                clearInterval(miningInterval);
+            }
+        }, intervalTime);
+
+        // Navigation functions
+        document.getElementById("home-button").onclick = function() {
+            alert("Welcome to Home!");
+            document.getElementById("leaderboard").style.display = "none";
+            document.getElementById("wallet").style.display = "none";
+        };
+
+        document.getElementById("leaderboard-button").onclick = function() {
+            document.getElementById("leaderboard").style.display = "block";
+            document.getElementById("wallet").style.display = "none";
+        };
+
+        document.getElementById("wallet-button").onclick = function() {
+            document.getElementById("wallet").style.display = "block";
+            document.getElementById("leaderboard").style.display = "none";
+        };
+
+        document.getElementById("connect-wallet-button").onclick = function() {
+            const walletAddress = document.getElementById("wallet-address").value;
+            if (walletAddress) {
+                walletStatus.textContent = "Wallet Connected: " + walletAddress;
+            } else {
+                walletStatus.textContent = "Please enter a valid wallet address.";
+            }
+        };
+    </script>
+</body>
+</html>
